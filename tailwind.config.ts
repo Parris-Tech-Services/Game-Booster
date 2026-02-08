@@ -83,9 +83,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+        sans: ["'DM Sans'", "sans-serif", "var(--font-sans)"],
+        serif: ["'Cinzel'", "serif", "var(--font-serif)"],
+        mono: ["'Fira Code'", "monospace", "var(--font-mono)"],
+        body: ["'IM Fell English'", "serif"],
       },
       keyframes: {
         "accordion-down": {

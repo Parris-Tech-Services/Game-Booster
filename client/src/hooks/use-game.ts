@@ -30,6 +30,33 @@ interface PlayerStats {
   str: number; dex: number; con: number; int: number; wis: number; cha: number;
 }
 
+const skillCheck = (
+  skill: string,
+  dc: number,
+  player: PlayerStats
+): { success: boolean; roll: number; total: number; mod: number } => {
+  const abilityMap: Record<string, keyof PlayerStats> = {
+    persuasion: 'cha',
+    deception: 'cha',
+    intimidation: 'cha',
+    investigation: 'int',
+    arcana: 'int',
+    perception: 'wis',
+    insight: 'wis',
+    athletics: 'str',
+    acrobatics: 'dex',
+    stealth: 'dex'
+  };
+
+  const ability = abilityMap[skill.toLowerCase()] || 'int';
+  const abilityScore = player[ability] as number;
+  const mod = Math.floor((abilityScore - 10) / 2);
+  const roll = Math.floor(Math.random() * 20) + 1;
+  const total = roll + mod;
+
+  return { success: total >= dc, roll, total, mod };
+};
+
 export interface GameState {
   player: PlayerStats;
   inventory: Item[];
@@ -268,12 +295,46 @@ export function useGame() {
     }));
   }, []);
 
-  const chooseResponse = useCallback((nextNodeId: string) => {
+  const chooseResponse = useCallback((responseIndex: number) => {
+    const currentNpc = NPCS.find(n => n.id === state.dialogue.npcId);
+    const currentNode = currentNpc?.dialogueTree[state.dialogue.nodeId || 'start'];
+    const response = currentNode?.responses[responseIndex];
+
+    if (!response) return;
+
+    if (response.skill_check) {
+      const result = skillCheck(
+        response.skill_check.skill,
+        response.skill_check.dc,
+        state.player
+      );
+
+      addLog(
+        result.success ? 'success' : 'error',
+        `${response.skill_check.skill.toUpperCase()} Check: d20(${result.roll}) + ${result.mod} = ${result.total} vs DC ${response.skill_check.dc} - ${result.success ? 'SUCCESS' : 'FAILURE'}`
+      );
+
+      const nextNode = result.success ? response.nextNode : (response.failNode || 'start');
+      setState(prev => ({
+        ...prev,
+        dialogue: { ...prev.dialogue, nodeId: nextNode }
+      }));
+      return;
+    }
+
+    if (response.item_required) {
+      const hasItem = state.inventory.some(item => item.id === response.item_required);
+      if (!hasItem) {
+        addLog('error', `You need ${response.item_required} to choose this option.`);
+        return;
+      }
+    }
+
     setState(prev => ({
       ...prev,
-      dialogue: { ...prev.dialogue, nodeId: nextNodeId }
+      dialogue: { ...prev.dialogue, nodeId: response.nextNode }
     }));
-  }, []);
+  }, [state.dialogue, state.player, state.inventory, addLog]);
 
   const endDialogue = useCallback(() => {
     setState(prev => ({

@@ -80,7 +80,7 @@ export default function Game() {
                   {dialogueNode.responses.map((resp, i) => (
                     <Button 
                       key={i}
-                      onClick={() => chooseResponse(resp.nextNode)}
+                      onClick={() => chooseResponse(i)}
                       variant="outline"
                       className="border-slate-700 hover:border-amber-500 hover:text-amber-500 text-slate-300"
                     >
